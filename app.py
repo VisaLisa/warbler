@@ -304,31 +304,36 @@ def messages_destroy(message_id):
     return redirect(f"/users/{g.user.id}")
 
 # Likes
-@app.route('/users/add_like/<int:message_id>', methods=['POST'])
-def add_like(message_id):
+# TODO: redo add likes 
+@app.route('/users/add_like/<int:message_id>', methods=["POST"])
+def likes_add(message_id):
+    """Toggle like/unlike"""
 
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
-    
-    new_like = Likes(user_id=g.user.id, message_id=message_id)
-    db.session.add(new_like)
-    db.session.commit()
 
-    return redirect('/')
+    message = Message.query.get_or_404(message_id)
 
-@app.route('/users/remove_like/<int:message_id>', methods=['POST'])
-def remove_like(message_id):
+    user_like = Likes.query.filter_by(message_id=message_id,user_id=g.user.id).first()
+    if user_like:
+        try:
+            db.session.delete(user_like)
+            db.session.commit()
+        except Exception as e:
+            flash(f"Error removing Like:{e}", "danger")
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
-    
-    like = Likes.query.filter_by(message_id=message_id).first()
-    db.session.delete(like)
-    db.session.commit()
+    else:
+        new_like = Likes(user_id=g.user.id, message_id=message.id)
 
-    return redirect('/')
+        try:
+            db.session.add(new_like)
+            db.session.commit()
+        except Exception as e:
+            flash(f"Error adding Like:{e}", "danger")
+
+    return redirect(f"/")
+
 
 @app.route('/users/<int:user_id>/likes')
 def show_likes(user_id):
@@ -338,9 +343,20 @@ def show_likes(user_id):
         return redirect("/")
 
     user = User.query.get_or_404(user_id)
-    liked_messages = user.likes
+    likes = []
+    for like in user.likes:
+        likes.append(like.id)
+    messages = (Message
+                .query
+                .filter(Message.id.in_(likes))
+                .order_by(Message.timestamp.desc())
+                .limit(100)
+                .all())
 
-    return render_template('/users/likes.html', user=user, liked_messages=liked_messages)
+    return render_template('users/likes.html', user=user, messages=messages)
+
+#####
+# Message    
 ##############################################################################
 # Homepage and error pages
 

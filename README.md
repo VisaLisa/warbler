@@ -5,3 +5,7 @@ To get this application running, make sure you do the following in the Terminal:
 3. pip install -r requirements.txt
 4. createdb warbler
 5. flask run
+
+TODO: 
+LIKES - update to not hard code to the profiles (http://users/302/likes)
+DELETE PROFILE - not working 
